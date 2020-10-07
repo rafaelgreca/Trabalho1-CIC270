@@ -4,217 +4,401 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 
-typedef struct coordenadas{
-  //irá armazenar os valores RGB de cada pixel
-  int x, y, z;
-
-}coordenadas;
-
+//irá armazenar os valores RGB de cada pixel
 typedef struct pixel{
-  //irá armazenar os valores RGB de cada pixel
-  int r, g, b;
+  float r, g, b;
 
 }pixel;
 
 /* Variáveis globais */
 
-char img[168];
-
-/* Largura da janela */
+int type_primitive = GL_POINTS;
+int largura_imagem;
+int altura_imagem;
 int win_width  = 800;
-/* Altura da janela */
 int win_height = 600;
-/* Variável programa */
-int programa;
-/* Vertex array */
+int program;
 unsigned int VAO;
-/* Vertex buffer */
 unsigned int VBO;
-
-/* Variável tipo primitivo */
-int primitivo = GL_POINTS;
 
 /* Vertex shader */
 const char *vertex_code = "\n"
 "#version 330 core\n"
 "layout (location = 0) in vec3 position;\n"
+"layout (location = 1) in vec3 color;\n"
+"\n"
+"out vec3 vColor;\n"
 "\n"
 "void main()\n"
 "{\n"
-"    gl_Position = vec4(position.x, position.y, position.z, 1.0);\n"
+"    gl_Position = vec4(position, 1.0);\n"
+"    vColor = color;\n"
 "}\0";
 
 /* Fragment shader. */
 const char *fragment_code = "\n"
 "#version 330 core\n"
+"\n"
+"in vec3 vColor;\n"
 "out vec4 FragColor;\n"
 "\n"
 "void main()\n"
 "{\n"
-"    FragColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);\n"
+"    FragColor = vec4(vColor, 1.0f);\n"
 "}\0";
 
 /* Funções */
- 
-void display(){
 
-  //glClearColor(0.2, 0.3, 0.3, 1.0);
-  //glClear(GL_COLOR_BUFFER_BIT);
+void le_comentarios(FILE *imagem){
 
-  glUseProgram(programa);
-  //glBindVertexArray(VAO);
-  //glDrawArrays(primitivo, 0, 4);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 24, 7, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
-  //glutSwapBuffers();
-}
+  char comentario;
 
-void reshape(int largura, int altura){
+  comentario = fgetc(imagem);
 
-  glViewport(0, 0, largura, altura);
-  glutPostRedisplay();
-
-}
-
-//configura as teclas necessárias do teclado
-void keyboard(unsigned char key, int x, int y){
-
-  switch (key){
-
-    case 'q':
-    case 'Q':
-      exit(0);
-      break;
-    case 'v':
-    case 'V':
-      primitivo = GL_LINES;
-      break;
-    default:
-      break;
-  }
+  if(comentario == '#'){
     
-	glutPostRedisplay();
+    do{
+      comentario = fgetc(imagem);
+    }while(comentario != '\n');
+
+  }
+
+  fseek(imagem, -1, SEEK_CUR);
 }
 
-/*Lê a imagem que é passada como parâmetro
-e armazena seus pixels em uma matriz*/
-int le_imagem(char nome_imagem[]){
+/*Lê a imagem que é passada como parâmetro e retorna sua matriz de pixels*/
+pixel **le_imagem(char nome_imagem[]){
 
   char id[2];
-  int largura, altura, valor_maximo_pixel;
+  int valor_maximo_pixel;
   pixel **matriz;
-  coordenadas **mat;
 
-  //Abre a imagem ppm
+  //Abre a imagem
   FILE *imagem = fopen(nome_imagem, "rb");
   if(!imagem){
     printf("Problema com o arquivo. \n");
+    exit(-1);
   }
 
   //P3 = imagem que está no formato texto (ASCII)
   //P6 = imagem que está no formato binário
   fscanf(imagem, "%s\n", id);
-  fscanf(imagem, "%d %d\n", &largura, &altura);
+  le_comentarios(imagem);
+  fscanf(imagem, "%d %d\n", &largura_imagem, &altura_imagem);
+  le_comentarios(imagem);
   fscanf(imagem, "%d\n", &valor_maximo_pixel);
+  le_comentarios(imagem);
+  //verifica se a imagem é maior que a janela
+  if((largura_imagem > win_width) || (altura_imagem > win_height)){
 
-  if(largura > 0 && altura > 0 && valor_maximo_pixel <= 255){
+    printf("A resolucao da imagem eh maior que a da janela!\n");
+    exit(-1);
+  }
+
+  //verifica se a imagem possui um cabeçalho válido
+  if(largura_imagem > 0 && altura_imagem > 0 && valor_maximo_pixel <= 255){
 
     int tamanho = strlen(nome_imagem);
-    const char *extensao = &nome_imagem[tamanho-3];
 
-    if(strcmp(extensao, "pgm") == 0){
+    matriz = malloc (largura_imagem * sizeof(pixel));
+
+    //aloca a matriz
+    for(int i=0; i<largura_imagem; i++){
+      matriz[i] = malloc (altura_imagem * sizeof(pixel));
+    }
     
-      matriz = malloc (largura * sizeof(pixel));
-      mat = malloc (largura * sizeof(coordenadas));
+    //verifica se o identificador é p2
+    if(strcmp(id, "P2") == 0){
 
-      if((strcmp(id, "P2") == 0) || (strcmp(id, "P3") == 0)){
+      for(int i=0; i<altura_imagem; i++){
+        for(int j=largura_imagem-1; j>=0; j--){
+          float rgb;
+          fscanf(imagem, "%f", &rgb);
 
-        //aloca as matrizes
-        for(int i=0; i<largura; i++){
-          matriz[i] = malloc (altura * sizeof(pixel));
-          mat[i] = malloc (altura * sizeof(coordenadas));
+          //insere os valores rgb já normalizados (com valor entre 0 e 1)
+          matriz[i][j].r = rgb/valor_maximo_pixel;
+          matriz[i][j].g = rgb/valor_maximo_pixel;
+          matriz[i][j].b = rgb/valor_maximo_pixel;
         }
-
-        for(int k=0; k<altura; k++){
-
-          for(int l=0; l<largura; l++){
-            fscanf(imagem, "%d", &matriz[l][k].r);
-            img[largura * k + l] = matriz[l][k].r/valor_maximo_pixel;
-          }
-
-        }
+      }
       
-      }
-
-      if((strcmp(id, "P6") == 0) || (strcmp(id, "P5") == 0)){
-
-        for(int k=0; k<altura; k++){
-
-          for(int l=0; l<largura; l++){
-            pixel p;
-            fread(&p, 1, 1, imagem);
-          }
-        
-        }
-
-      }
-
-    }else{
-
-      if(strcmp(extensao, "ppm") == 0){
-    
-        matriz = malloc (largura * sizeof(pixel));
-        mat = malloc (largura * sizeof(coordenadas));
-
-        if((strcmp(id, "P2") == 0) || (strcmp(id, "P3") == 0)){
-
-          //aloca as matrizes
-          for(int i=0; i<largura; i++){
-            matriz[i] = malloc (altura * sizeof(pixel));
-            mat[i] = malloc (altura * sizeof(coordenadas));
-          }
-
-          for(int k=0; k<altura; k++){
-
-            for(int l=0; l<largura; l++){
-              fscanf(imagem, "%d %d %d", &matriz[l][k].r, &matriz[l][k].g, &matriz[l][k].b);
-            }
-
-          }
-        
-        }
-
-        if((strcmp(id, "P6") == 0) || (strcmp(id, "P5") == 0)){
-
-          for(int k=0; k<altura; k++){
-
-            for(int l=0; l<largura; l++){
-              pixel p;
-              fread(&p, 1, 1, imagem);
-            }
-
-          }
-
-        }
-
-     }else{
-
-       printf("Extensão invalida\n");
-       exit(-1);
-
-     }
-
+      return matriz;   
     }
 
+    //verfica se o identificador é p3
+    if(strcmp(id, "P3") == 0){
+      for(int i=0; i<altura_imagem; i++){
+        for(int j=largura_imagem-1; j>=0; j--){
+          float r, g, b;
+          fscanf(imagem, "%f %f %f", &r, &g, &b);
+
+          //insere os valores rgb já normalizados (com valor entre 0 e 1)
+          matriz[i][j].r = r/valor_maximo_pixel;
+          matriz[i][j].g = g/valor_maximo_pixel;
+          matriz[i][j].b = b/valor_maximo_pixel;
+        }
+      }
+      
+      return matriz;
+    }
+
+    //verifica se o identificador é p5
+    if(strcmp(id, "P5") == 0){
+      for(int i=0; i<altura_imagem; i++){
+        for(int j=largura_imagem-1; j>=0; j--){
+          int rgb;
+          fread(&rgb, 1, 1, imagem);
+
+          //insere os valores rgb já normalizados (com valor entre 0 e 1)
+          matriz[i][j].r = rgb/(1.0 * valor_maximo_pixel);
+          matriz[i][j].g = rgb/(1.0 * valor_maximo_pixel);
+          matriz[i][j].b = rgb/(1.0 * valor_maximo_pixel);
+        }
+      }
+      
+      return matriz;
+    }
+
+    //verifica se o identificador é p6
+    if(strcmp(id, "P6") == 0){
+      for(int i=0; i<altura_imagem; i++){
+        for(int j=largura_imagem-1; j>=0; j--){
+          unsigned char currentPixel[3];
+          fread(currentPixel, 3, 1, imagem);
+
+          //insere os valores rgb já normalizados (com valor entre 0 e 1)
+          matriz[i][j].r = currentPixel[0]/(1.0 * valor_maximo_pixel);
+          matriz[i][j].g = currentPixel[1]/(1.0 * valor_maximo_pixel);
+          matriz[i][j].b = currentPixel[2]/(1.0 * valor_maximo_pixel);
+        }
+      }
+      
+      return matriz;
+    }
+
+  }else{
+    printf("Imagem invalida!\n");
+    exit(-1);
   }
 
   //fecha o arquivo da imagem
   fclose(imagem);
 }
 
+//normaliza a coordenada do eixo x
+float normaliza_eixo_x(float coordenada){
+
+  /*
+  if(coordenada < largura_imagem){
+    return (0 - coordenada)/largura_imagem;
+  }else{
+    if(coordenada == largura_imagem/2){
+      return 0.0;
+    }else{
+      return (coordenada - 0)/largura_imagem;
+    }
+  }
+  */
+  return ((largura_imagem/2.0) - coordenada)/(largura_imagem/2.0);
+
+}
+
+//normaliza a coordenada do eixo y
+float normaliza_eixo_y(float coordenada){
+
+  /*
+  if(coordenada < altura_imagem){
+    return (0 - coordenada)/altura_imagem;
+  }else{
+    if(coordenada == altura_imagem/2){
+      return 0.0;
+    }else{
+      return (coordenada - 0)/altura_imagem;
+    }
+  }
+  */
+  
+  return ((altura_imagem/2.0) - coordenada)/(altura_imagem/2.0);
+}
+
+void initData(pixel **matriz){
+
+  //cada pixel terá 6 vértices
+  //como cada vértice terá seis valores, como mostrado abaixo:
+  //ordem dos valores do vértice: X, Y, Z (0.0), R, G, B
+  //o tamanho do vértice será: altura_imagem * largura_imagem * 36
+  float *vertices;
+  int quantidade_vet = 0;
+
+  vertices = (float *) malloc(altura_imagem * largura_imagem * 36 * sizeof(float));
+
+  if(!vertices){
+    printf("Erro ao alocar memória!\n");
+    exit(-1);
+  }
+
+  for(int i=0; i<altura_imagem-1; i++){
+    for(int j=largura_imagem-1; j>=0; j--){
+
+      //para cada pixel teremos 6 vértices
+      //um para cada canto do quadrado (pixel) e dois repetidos para a diagonal secundária
+
+      //vértice 1
+      float vet_aux[6] = {normaliza_eixo_x(j), normaliza_eixo_y(i), 0.0, matriz[i][j].r, matriz[i][j].g, matriz[i][j].b};
+      
+      for(int k=0; k<6; k++){
+        vertices[quantidade_vet] = vet_aux[k];
+        quantidade_vet++;
+      }
+
+      //vértice 2
+      float vet_aux2[6] = {normaliza_eixo_x(j), normaliza_eixo_y(i+1), 0.0, matriz[i+1][j].r, matriz[i+1][j].g, matriz[i+1][j].b};
+
+      for(int k=0; k<6; k++){
+        vertices[quantidade_vet] = vet_aux2[k];
+        quantidade_vet++;
+      }
+
+      //vértice 3
+      float vet_aux3[6] = {normaliza_eixo_x(j+1), normaliza_eixo_y(i+1), 0.0, matriz[i+1][j+1].r, matriz[i+1][j+1].g, matriz[i+1][j+1].b};
+
+      for(int k=0; k<6; k++){
+        vertices[quantidade_vet] = vet_aux3[k];
+        quantidade_vet++;
+      }
+
+      //vértice 4
+      float vet_aux4[6] = {normaliza_eixo_x(j+1), normaliza_eixo_y(i+1), 0.0, matriz[i+1][j+1].r, matriz[i+1][j+1].g, matriz[i+1][j+1].b};
+
+      for(int k=0; k<6; k++){
+        vertices[quantidade_vet] = vet_aux4[k];
+        quantidade_vet++;
+      }
+
+      //vértice 5
+      float vet_aux5[6] = {normaliza_eixo_x(j+1), normaliza_eixo_y(i), 0.0, matriz[i][j+1].r, matriz[i][j+1].g, matriz[i][j+1].b};
+
+      for(int k=0; k<6; k++){
+        vertices[quantidade_vet] = vet_aux5[k];
+        quantidade_vet++;
+      }
+
+      //vértice 6
+      float vet_aux6[6] = {normaliza_eixo_x(j), normaliza_eixo_y(i), 0.0, matriz[i][j].r, matriz[i][j].g, matriz[i][j].b};
+
+      for(int k=0; k<6; k++){
+        vertices[quantidade_vet] = vet_aux6[k];
+        quantidade_vet++;
+      }
+    }
+  }
+    
+  //Vertex array.
+  glGenVertexArrays(1, &VAO);
+  glBindVertexArray(VAO);
+
+  //Vertex buffer
+  glGenBuffers(1, &VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * altura_imagem * largura_imagem * 36 , vertices, GL_STATIC_DRAW);
+    
+  //Set attributes.
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)(3*sizeof(float)));
+  glEnableVertexAttribArray(1);
+
+  //Unbind Vertex Array Object.
+  glBindVertexArray(0);
+}
+
+void display(){
+
+  glClearColor(0.2, 0.3, 0.3, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glUseProgram(program);
+	glBindVertexArray(VAO);
+
+  //passa a quantidade de vértices que serão desenhados
+	glDrawArrays(type_primitive, 0, altura_imagem * largura_imagem * 6);
+
+	glutSwapBuffers();
+}
+
+void reshape(int width, int height){
+  win_width = width;
+  win_height = height;
+  glViewport(0, 0, width, height);
+  glutPostRedisplay();
+}
+
+//configura as teclas necessárias do teclado
+void keyboard(unsigned char key, int x, int y){
+
+  switch(key){
+
+    case 27:
+      exit(0);
+    case 'q':
+    case 'Q':
+      exit(0);
+      break;
+    case 'v':
+    case 'V':
+      if(type_primitive == GL_POINTS){
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        type_primitive = GL_TRIANGLES;
+      }else{
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        type_primitive = GL_POINTS;
+      }
+
+      break;
+  }
+    
+	glutPostRedisplay();
+}
+
+void initShaders(){
+  
+  // Request a program and shader slots from GPU
+  program  = glCreateProgram();
+  int vertex   = glCreateShader(GL_VERTEX_SHADER);
+  int fragment = glCreateShader(GL_FRAGMENT_SHADER);
+    
+  // Set shaders source
+  glShaderSource(vertex, 1, &vertex_code, NULL);
+  glShaderSource(fragment, 1, &fragment_code, NULL);
+
+  // Compile shaders
+  glCompileShader(vertex);
+  glCompileShader(fragment);
+
+  // Attach shader objects to the program
+  glAttachShader(program, vertex);
+  glAttachShader(program, fragment);
+
+  // Link the program
+  glLinkProgram(program);
+
+  // Get rid of shaders (not needed anymore)
+  glDetachShader(program, vertex);
+  glDetachShader(program, fragment);
+  glDeleteShader(vertex);
+  glDeleteShader(fragment);
+    
+  // Set the program to be used.
+  glUseProgram(program);
+}
+
 int main(int argc, char *argv[]){
+
+  pixel **matriz_pixels;
 
   if (argc != 2){
     printf("Erro ao passar os parâmetros!\n");
+    printf("Exemplo: ./modelo images/nome_da_imagem.pgm(ou ppm)");
     return 0;
   }
 
@@ -222,7 +406,7 @@ int main(int argc, char *argv[]){
 
   strcpy(nome_imagem, argv[1]);
 
-  le_imagem(nome_imagem);
+  matriz_pixels = le_imagem(nome_imagem);
 
   glutInit(&argc, argv);
 	glutInitContextVersion(3, 3);
@@ -233,10 +417,19 @@ int main(int argc, char *argv[]){
 	glewExperimental = GL_TRUE; 
 	glewInit();
 
+  //Init vertex data for the triangle
+  initData(matriz_pixels);
+
+  //Create shaders
+  initShaders();
+
   glutReshapeFunc(reshape);
 	glutDisplayFunc(display);
 	glutKeyboardFunc(keyboard);
 
 	glutMainLoop();
+
+  //libera o espaço alocado pela matriz de pixels
+  free(matriz_pixels);
   return 0;
 }
