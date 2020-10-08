@@ -1,3 +1,10 @@
+/*
+Lista 1 - Computação Gráfica (CIC270)
+
+Rafael Greca Vieira - 2018000434
+Vitor Siqueira Lobão - 2018004809
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
