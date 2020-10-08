@@ -15,8 +15,8 @@ typedef struct pixel{
 int type_primitive = GL_POINTS;
 int largura_imagem;
 int altura_imagem;
-int win_width  = 800;
-int win_height = 600;
+int win_width  = 1000;
+int win_height = 800;
 int program;
 unsigned int VAO;
 unsigned int VBO;
@@ -49,6 +49,7 @@ const char *fragment_code = "\n"
 
 /* Funções */
 
+//ignora os comentários das imagens (máximo uma linha por vez)
 void le_comentarios(FILE *imagem){
 
   char comentario;
@@ -57,12 +58,14 @@ void le_comentarios(FILE *imagem){
 
   if(comentario == '#'){
     
+    //le até terminar a linha do comentário
     do{
       comentario = fgetc(imagem);
     }while(comentario != '\n');
 
   }
 
+  //volta uma posição
   fseek(imagem, -1, SEEK_CUR);
 }
 
@@ -88,6 +91,7 @@ pixel **le_imagem(char nome_imagem[]){
   le_comentarios(imagem);
   fscanf(imagem, "%d\n", &valor_maximo_pixel);
   le_comentarios(imagem);
+
   //verifica se a imagem é maior que a janela
   if((largura_imagem > win_width) || (altura_imagem > win_height)){
 
@@ -188,37 +192,24 @@ pixel **le_imagem(char nome_imagem[]){
 //normaliza a coordenada do eixo x
 float normaliza_eixo_x(float coordenada){
 
-  /*
-  if(coordenada < largura_imagem){
-    return (0 - coordenada)/largura_imagem;
+  if(coordenada < (largura_imagem/2.0)){
+    return ((largura_imagem/2.0) - coordenada)/(largura_imagem/2.0);
   }else{
-    if(coordenada == largura_imagem/2){
-      return 0.0;
-    }else{
-      return (coordenada - 0)/largura_imagem;
-    }
+    
+    return (-1.0 * (coordenada - (largura_imagem/2.0)))/(largura_imagem/2.0);
   }
-  */
-  return ((largura_imagem/2.0) - coordenada)/(largura_imagem/2.0);
-
 }
 
 //normaliza a coordenada do eixo y
 float normaliza_eixo_y(float coordenada){
 
-  /*
-  if(coordenada < altura_imagem){
-    return (0 - coordenada)/altura_imagem;
+  if(coordenada < (altura_imagem/2.0)){
+    return ((altura_imagem/2.0) - coordenada)/(altura_imagem/2.0);
   }else{
-    if(coordenada == altura_imagem/2){
-      return 0.0;
-    }else{
-      return (coordenada - 0)/altura_imagem;
-    }
+    
+    return (-1.0 * (coordenada - (altura_imagem/2.0)))/(altura_imagem/2.0);
+
   }
-  */
-  
-  return ((altura_imagem/2.0) - coordenada)/(altura_imagem/2.0);
 }
 
 void initData(pixel **matriz){
@@ -238,7 +229,7 @@ void initData(pixel **matriz){
   }
 
   for(int i=0; i<altura_imagem-1; i++){
-    for(int j=largura_imagem-1; j>=0; j--){
+    for(int j=0; j<largura_imagem-1; j++){
 
       //para cada pixel teremos 6 vértices
       //um para cada canto do quadrado (pixel) e dois repetidos para a diagonal secundária
