@@ -90,8 +90,10 @@ pixel **le_imagem(char nome_imagem[]){
     exit(-1);
   }
 
-  //P3 = imagem que está no formato texto (ASCII)
-  //P6 = imagem que está no formato binário
+  //P2 e P3 = imagem que está no formato texto (ASCII)
+  //P5 e P6 = imagem que está no formato binário
+  //PBM (preto e branco)
+  //PGM (colorida)
   fscanf(imagem, "%s\n", id);
   le_comentarios(imagem);
   fscanf(imagem, "%d %d\n", &largura_imagem, &altura_imagem);
