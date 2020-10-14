@@ -22,8 +22,8 @@ typedef struct pixel{
 int type_primitive = GL_POINTS;
 int largura_imagem;
 int altura_imagem;
-int win_width  = 1000;
-int win_height = 800;
+int win_width  = 800;
+int win_height = 600;
 int program;
 unsigned int VAO;
 unsigned int VBO;
@@ -77,7 +77,7 @@ void le_comentarios(FILE *imagem){
 }
 
 /*Lê a imagem que é passada como parâmetro e retorna sua matriz de pixels*/
-pixel **le_imagem(char nome_imagem[]){
+pixel **le_imagem(char nome_imagem[]){ 
 
   char id[2];
   int valor_maximo_pixel;
@@ -97,6 +97,7 @@ pixel **le_imagem(char nome_imagem[]){
   fscanf(imagem, "%s\n", id);
   le_comentarios(imagem);
   fscanf(imagem, "%d %d\n", &largura_imagem, &altura_imagem);
+  printf("%d %d\n", largura_imagem, altura_imagem);
   le_comentarios(imagem);
   fscanf(imagem, "%d\n", &valor_maximo_pixel);
   le_comentarios(imagem);
@@ -113,18 +114,18 @@ pixel **le_imagem(char nome_imagem[]){
 
     int tamanho = strlen(nome_imagem);
 
-    matriz = malloc (largura_imagem * sizeof(pixel));
+    matriz = malloc (altura_imagem * sizeof(pixel));
 
     //aloca a matriz
-    for(int i=0; i<largura_imagem; i++){
-      matriz[i] = malloc (altura_imagem * sizeof(pixel));
+    for(int i=0; i<altura_imagem; i++){
+      matriz[i] = malloc (largura_imagem * sizeof(pixel));
     }
     
     //verifica se o identificador é p2
     if(strcmp(id, "P2") == 0){
 
       for(int i=0; i<altura_imagem; i++){
-        for(int j=largura_imagem-1; j>=0; j--){
+        for(int j=0; j<largura_imagem; j++){
           float rgb;
           fscanf(imagem, "%f", &rgb);
 
@@ -141,7 +142,7 @@ pixel **le_imagem(char nome_imagem[]){
     //verfica se o identificador é p3
     if(strcmp(id, "P3") == 0){
       for(int i=0; i<altura_imagem; i++){
-        for(int j=largura_imagem-1; j>=0; j--){
+        for(int j=0; j<largura_imagem; j++){
           float r, g, b;
           fscanf(imagem, "%f %f %f", &r, &g, &b);
 
@@ -158,7 +159,7 @@ pixel **le_imagem(char nome_imagem[]){
     //verifica se o identificador é p5
     if(strcmp(id, "P5") == 0){
       for(int i=0; i<altura_imagem; i++){
-        for(int j=largura_imagem-1; j>=0; j--){
+        for(int j=0; j<largura_imagem; j++){
           int rgb;
           fread(&rgb, 1, 1, imagem);
 
@@ -175,7 +176,7 @@ pixel **le_imagem(char nome_imagem[]){
     //verifica se o identificador é p6
     if(strcmp(id, "P6") == 0){
       for(int i=0; i<altura_imagem; i++){
-        for(int j=largura_imagem-1; j>=0; j--){
+        for(int j=0; j<largura_imagem; j++){
           unsigned char currentPixel[3];
           fread(currentPixel, 3, 1, imagem);
 
@@ -201,17 +202,22 @@ pixel **le_imagem(char nome_imagem[]){
 //normaliza a coordenada do eixo x
 float normaliza_eixo_x(float coordenada){
 
+  /*
   if(coordenada < (largura_imagem/2.0)){
     return ((largura_imagem/2.0) - coordenada)/(largura_imagem/2.0);
   }else{
     
     return (-1.0 * (coordenada - (largura_imagem/2.0)))/(largura_imagem/2.0);
   }
+  */
+
+  return ((coordenada/(largura_imagem - 1.0f)) * 2.0f - 1.0f);
 }
 
 //normaliza a coordenada do eixo y
 float normaliza_eixo_y(float coordenada){
 
+  /*
   if(coordenada < (altura_imagem/2.0)){
     return ((altura_imagem/2.0) - coordenada)/(altura_imagem/2.0);
   }else{
@@ -219,6 +225,9 @@ float normaliza_eixo_y(float coordenada){
     return (-1.0 * (coordenada - (altura_imagem/2.0)))/(altura_imagem/2.0);
 
   }
+  */
+
+  return (((altura_imagem - 1.0f - coordenada)/(altura_imagem - 1.0f)) * 2.0f - 1.0f);
 }
 
 void initData(pixel **matriz){
@@ -247,48 +256,42 @@ void initData(pixel **matriz){
       float vet_aux[6] = {normaliza_eixo_x(j), normaliza_eixo_y(i), 0.0, matriz[i][j].r, matriz[i][j].g, matriz[i][j].b};
       
       for(int k=0; k<6; k++){
-        vertices[quantidade_vet] = vet_aux[k];
-        quantidade_vet++;
+        vertices[quantidade_vet++] = vet_aux[k];
       }
 
       //vértice 2
       float vet_aux2[6] = {normaliza_eixo_x(j), normaliza_eixo_y(i+1), 0.0, matriz[i+1][j].r, matriz[i+1][j].g, matriz[i+1][j].b};
 
       for(int k=0; k<6; k++){
-        vertices[quantidade_vet] = vet_aux2[k];
-        quantidade_vet++;
+        vertices[quantidade_vet++] = vet_aux2[k];
       }
 
       //vértice 3
-      float vet_aux3[6] = {normaliza_eixo_x(j+1), normaliza_eixo_y(i+1), 0.0, matriz[i+1][j+1].r, matriz[i+1][j+1].g, matriz[i+1][j+1].b};
+      float vet_aux3[6] = {normaliza_eixo_x(j+1), normaliza_eixo_y(i), 0.0, matriz[i][j+1].r, matriz[i][j+1].g, matriz[i][j+1].b};
 
       for(int k=0; k<6; k++){
-        vertices[quantidade_vet] = vet_aux3[k];
-        quantidade_vet++;
+        vertices[quantidade_vet++] = vet_aux3[k];
       }
 
       //vértice 4
-      float vet_aux4[6] = {normaliza_eixo_x(j+1), normaliza_eixo_y(i+1), 0.0, matriz[i+1][j+1].r, matriz[i+1][j+1].g, matriz[i+1][j+1].b};
+      float vet_aux4[6] = {normaliza_eixo_x(j), normaliza_eixo_y(i+1), 0.0, matriz[i+1][j].r, matriz[i+1][j].g, matriz[i+1][j].b};
 
       for(int k=0; k<6; k++){
-        vertices[quantidade_vet] = vet_aux4[k];
-        quantidade_vet++;
+        vertices[quantidade_vet++] = vet_aux4[k];
       }
 
       //vértice 5
-      float vet_aux5[6] = {normaliza_eixo_x(j+1), normaliza_eixo_y(i), 0.0, matriz[i][j+1].r, matriz[i][j+1].g, matriz[i][j+1].b};
+      float vet_aux5[6] = {normaliza_eixo_x(j+1), normaliza_eixo_y(i+1), 0.0, matriz[i+1][j+1].r, matriz[i+1][j+1].g, matriz[i+1][j+1].b};
 
       for(int k=0; k<6; k++){
-        vertices[quantidade_vet] = vet_aux5[k];
-        quantidade_vet++;
+        vertices[quantidade_vet++] = vet_aux5[k];
       }
 
       //vértice 6
-      float vet_aux6[6] = {normaliza_eixo_x(j), normaliza_eixo_y(i), 0.0, matriz[i][j].r, matriz[i][j].g, matriz[i][j].b};
+      float vet_aux6[6] = {normaliza_eixo_x(j+1), normaliza_eixo_y(i), 0.0, matriz[i][j+1].r, matriz[i][j+1].g, matriz[i][j+1].b};
 
       for(int k=0; k<6; k++){
-        vertices[quantidade_vet] = vet_aux6[k];
-        quantidade_vet++;
+        vertices[quantidade_vet++] = vet_aux6[k];
       }
     }
   }
