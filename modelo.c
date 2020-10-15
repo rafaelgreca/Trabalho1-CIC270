@@ -22,8 +22,8 @@ typedef struct pixel{
 int type_primitive = GL_POINTS;
 int largura_imagem;
 int altura_imagem;
-int win_width  = 800;
-int win_height = 600;
+int win_width  = 900;
+int win_height = 700;
 int program;
 unsigned int VAO;
 unsigned int VBO;
@@ -97,7 +97,6 @@ pixel **le_imagem(char nome_imagem[]){
   fscanf(imagem, "%s\n", id);
   le_comentarios(imagem);
   fscanf(imagem, "%d %d\n", &largura_imagem, &altura_imagem);
-  printf("%d %d\n", largura_imagem, altura_imagem);
   le_comentarios(imagem);
   fscanf(imagem, "%d\n", &valor_maximo_pixel);
   le_comentarios(imagem);
@@ -111,8 +110,6 @@ pixel **le_imagem(char nome_imagem[]){
 
   //verifica se a imagem possui um cabeçalho válido
   if(largura_imagem > 0 && altura_imagem > 0 && valor_maximo_pixel <= 255){
-
-    int tamanho = strlen(nome_imagem);
 
     matriz = malloc (altura_imagem * sizeof(pixel));
 
@@ -136,6 +133,7 @@ pixel **le_imagem(char nome_imagem[]){
         }
       }
       
+      fclose(imagem);
       return matriz;   
     }
 
@@ -153,6 +151,7 @@ pixel **le_imagem(char nome_imagem[]){
         }
       }
       
+      fclose(imagem);
       return matriz;
     }
 
@@ -170,6 +169,7 @@ pixel **le_imagem(char nome_imagem[]){
         }
       }
       
+      fclose(imagem);
       return matriz;
     }
 
@@ -187,6 +187,7 @@ pixel **le_imagem(char nome_imagem[]){
         }
       }
       
+      fclose(imagem);
       return matriz;
     }
 
@@ -195,7 +196,6 @@ pixel **le_imagem(char nome_imagem[]){
     exit(-1);
   }
 
-  //fecha o arquivo da imagem
   fclose(imagem);
 }
 
@@ -234,42 +234,48 @@ void initData(pixel **matriz){
       //um para cada canto do quadrado (pixel) e dois repetidos para a diagonal secundária
 
       //vértice 1
-      float vet_aux[6] = {normaliza_eixo_x(j), normaliza_eixo_y(i), 0.0, matriz[i][j].r, matriz[i][j].g, matriz[i][j].b};
+      float vet_aux[6] = {normaliza_eixo_x(j), normaliza_eixo_y(i), 0.0, matriz[i][j].r, matriz[i][j].g,
+       matriz[i][j].b};
       
       for(int k=0; k<6; k++){
         vertices[quantidade_vet++] = vet_aux[k];
       }
 
       //vértice 2
-      float vet_aux2[6] = {normaliza_eixo_x(j), normaliza_eixo_y(i+1), 0.0, matriz[i+1][j].r, matriz[i+1][j].g, matriz[i+1][j].b};
+      float vet_aux2[6] = {normaliza_eixo_x(j), normaliza_eixo_y(i+1), 0.0, matriz[i+1][j].r,
+       matriz[i+1][j].g, matriz[i+1][j].b};
 
       for(int k=0; k<6; k++){
         vertices[quantidade_vet++] = vet_aux2[k];
       }
 
       //vértice 3
-      float vet_aux3[6] = {normaliza_eixo_x(j+1), normaliza_eixo_y(i), 0.0, matriz[i][j+1].r, matriz[i][j+1].g, matriz[i][j+1].b};
+      float vet_aux3[6] = {normaliza_eixo_x(j+1), normaliza_eixo_y(i), 0.0, matriz[i][j+1].r,
+       matriz[i][j+1].g, matriz[i][j+1].b};
 
       for(int k=0; k<6; k++){
         vertices[quantidade_vet++] = vet_aux3[k];
       }
 
       //vértice 4
-      float vet_aux4[6] = {normaliza_eixo_x(j), normaliza_eixo_y(i+1), 0.0, matriz[i+1][j].r, matriz[i+1][j].g, matriz[i+1][j].b};
+      float vet_aux4[6] = {normaliza_eixo_x(j), normaliza_eixo_y(i+1), 0.0, matriz[i+1][j].r,
+       matriz[i+1][j].g, matriz[i+1][j].b};
 
       for(int k=0; k<6; k++){
         vertices[quantidade_vet++] = vet_aux4[k];
       }
 
       //vértice 5
-      float vet_aux5[6] = {normaliza_eixo_x(j+1), normaliza_eixo_y(i+1), 0.0, matriz[i+1][j+1].r, matriz[i+1][j+1].g, matriz[i+1][j+1].b};
+      float vet_aux5[6] = {normaliza_eixo_x(j+1), normaliza_eixo_y(i+1), 0.0, matriz[i+1][j+1].r,
+       matriz[i+1][j+1].g, matriz[i+1][j+1].b};
 
       for(int k=0; k<6; k++){
         vertices[quantidade_vet++] = vet_aux5[k];
       }
 
       //vértice 6
-      float vet_aux6[6] = {normaliza_eixo_x(j+1), normaliza_eixo_y(i), 0.0, matriz[i][j+1].r, matriz[i][j+1].g, matriz[i][j+1].b};
+      float vet_aux6[6] = {normaliza_eixo_x(j+1), normaliza_eixo_y(i), 0.0, matriz[i][j+1].r,
+       matriz[i][j+1].g, matriz[i][j+1].b};
 
       for(int k=0; k<6; k++){
         vertices[quantidade_vet++] = vet_aux6[k];
@@ -284,7 +290,8 @@ void initData(pixel **matriz){
   //Vertex buffer
   glGenBuffers(1, &VBO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * altura_imagem * largura_imagem * 36 , vertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * altura_imagem * largura_imagem * 36 , vertices,
+   GL_STATIC_DRAW);
     
   //Set attributes.
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)0);
@@ -401,10 +408,7 @@ int main(int argc, char *argv[]){
 	glewExperimental = GL_TRUE; 
 	glewInit();
 
-  //Init vertex data for the triangle
   initData(matriz_pixels);
-
-  //Create shaders
   initShaders();
 
   glutReshapeFunc(reshape);
