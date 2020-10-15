@@ -202,30 +202,11 @@ pixel **le_imagem(char nome_imagem[]){
 //normaliza a coordenada do eixo x
 float normaliza_eixo_x(float coordenada){
 
-  /*
-  if(coordenada < (largura_imagem/2.0)){
-    return ((largura_imagem/2.0) - coordenada)/(largura_imagem/2.0);
-  }else{
-    
-    return (-1.0 * (coordenada - (largura_imagem/2.0)))/(largura_imagem/2.0);
-  }
-  */
-
   return ((coordenada/(largura_imagem - 1.0f)) * 2.0f - 1.0f);
 }
 
 //normaliza a coordenada do eixo y
 float normaliza_eixo_y(float coordenada){
-
-  /*
-  if(coordenada < (altura_imagem/2.0)){
-    return ((altura_imagem/2.0) - coordenada)/(altura_imagem/2.0);
-  }else{
-    
-    return (-1.0 * (coordenada - (altura_imagem/2.0)))/(altura_imagem/2.0);
-
-  }
-  */
 
   return (((altura_imagem - 1.0f - coordenada)/(altura_imagem - 1.0f)) * 2.0f - 1.0f);
 }
